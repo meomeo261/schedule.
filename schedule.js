@@ -4,11 +4,12 @@ const cron = require('node-cron');
 require('dotenv').config(); // Load biến môi trường từ .env
 
 // === Khởi tạo Firebase Admin ===
-const serviceAccount = require('./serviceAccountKey.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://rfid-8555d-default-rtdb.asia-southeast1.firebasedatabase.app',
 });
+
 
 // === Cấu hình SendGrid ===
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
