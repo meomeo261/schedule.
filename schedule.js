@@ -25,6 +25,7 @@ if (!SENDGRID_API_KEY || !SENDGRID_SENDER) {
   process.exit(1);
 }
 sgMail.setApiKey(SENDGRID_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 console.log(`[DEBUG] API Key có độ dài: ${SENDGRID_API_KEY.length}`);
 
 // 🧠 Hàm gửi email nhắc lịch học
@@ -67,7 +68,7 @@ async function checkTodaySchedule() {
                    <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
                    <p>Vui lòng đến đúng giờ để điểm danh.</p>`,
           };
-          
+
           try {
             await sgMail.send(msg);
             console.log(`✅ Đã gửi email cho ${name} (${email})`);
