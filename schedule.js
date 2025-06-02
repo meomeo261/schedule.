@@ -91,4 +91,5 @@ async function checkTodaySchedule() {
 // 🧪 Test khi chạy thủ công
 (async () => {
   await checkTodaySchedule();
+  process.exit();
 })();
