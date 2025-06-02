@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.5",
+    "dotenv": "^16.5.0",
+    "firebase-admin": "^13.4.0",
+    "node-cron": "^4.0.5"
+  }
+}
