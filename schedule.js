@@ -1,6 +1,5 @@
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
-const cron = require('node-cron');
 require('dotenv').config(); // Chỉ dùng khi chạy local
 
 // ===============================
@@ -30,7 +29,11 @@ if (!SENDGRID_API_KEY || !SENDGRID_SENDER) {
   process.exit(1);
 }
 
-sgMail.setApiKey(SENDGRID_API_KEY);
+if (!SENDGRID_API_KEY) {
+  console.error("❌ Thiếu biến môi trường SENDGRID_API_KEY");
+  process.exit(1);
+}
+console.log(`[DEBUG] API Key có độ dài: ${SENDGRID_API_KEY.length}`);
 
 // ===============================
 // 🧠 Hàm gửi email nhắc lịch học
@@ -97,10 +100,6 @@ async function checkTodaySchedule() {
 // ===============================
 // ⏰ Cron job (local testing)
 // ===============================
-cron.schedule('0 7 * * *', () => {
-  console.log("⏰ Cron job kích hoạt lúc 7:00 sáng...");
-  checkTodaySchedule();
-});
 
 // ===============================
 // 🧪 Test khi chạy thủ công
