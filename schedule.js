@@ -1,51 +1,65 @@
 const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
 const cron = require('node-cron');
-require('dotenv').config(); // Load biến môi trường từ .env
+require('dotenv').config(); // Chỉ dùng khi chạy local
 
-// === Khởi tạo Firebase Admin ===
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// ===============================
+// 🔐 Khởi tạo Firebase Admin SDK
+// ===============================
+let serviceAccount = null;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error("❌ Không thể đọc biến FIREBASE_SERVICE_ACCOUNT:", err.message);
+  process.exit(1);
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://rfid-8555d-default-rtdb.asia-southeast1.firebasedatabase.app',
 });
 
-
-// === Cấu hình SendGrid ===
+// ===============================
+// 📧 Cấu hình SendGrid
+// ===============================
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-if (!SENDGRID_API_KEY) {
-  console.error("❌ Thiếu biến môi trường SENDGRID_API_KEY trong file .env");
+const SENDGRID_SENDER = process.env.SENDGRID_SENDER;
+
+if (!SENDGRID_API_KEY || !SENDGRID_SENDER) {
+  console.error("❌ Thiếu biến SENDGRID_API_KEY hoặc SENDGRID_SENDER");
   process.exit(1);
 }
+
 sgMail.setApiKey(SENDGRID_API_KEY);
 
-// === Hàm gửi email lịch học ===
+// ===============================
+// 🧠 Hàm gửi email nhắc lịch học
+// ===============================
 async function checkTodaySchedule() {
   const today = new Date();
   const weekday = today.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
   console.log(`[CHECK] Kiểm tra lịch học hôm nay: ${weekday}`);
 
   try {
-    const classesRef = admin.database().ref('class');
-    const snapshot = await classesRef.once('value');
+    const snapshot = await admin.database().ref('class').once('value');
     const classes = snapshot.val() || {};
-    let hasClassToday = false;
+    let found = false;
 
-    for (let classId in classes) {
+    for (const classId in classes) {
       const cls = classes[classId];
-      const classDay = cls.day?.toLowerCase();
+      const classDay = (cls.day || '').toLowerCase();
 
       if (classDay === weekday) {
-        hasClassToday = true;
+        found = true;
         console.log(`📚 Lớp ${classId} có lịch học hôm nay`);
 
         const students = cls.studentinclass || {};
-        for (let studentId in students) {
+        for (const studentId in students) {
           const student = students[studentId];
-          const email = student.Gmail || null;
-          const name = student['Ho Ten'] || "bạn sinh viên";
+          const email = student.Gmail;
+          const name = student['Ho Ten'] || 'bạn sinh viên';
+          const room = cls.room || 'Không rõ';
           const classCode = cls.code || classId;
-          const room = cls.room || "Không rõ";
 
           if (!email) {
             console.warn(`⚠️ Bỏ qua sinh viên không có email: ${name}`);
@@ -54,7 +68,7 @@ async function checkTodaySchedule() {
 
           const msg = {
             to: email,
-            from: 'dn2612003@gmail.com', // ✅ Đảm bảo email này đã xác minh trong SendGrid
+            from: SENDGRID_SENDER,
             subject: `📢 Nhắc lịch học hôm nay (${cls.day.toUpperCase()})`,
             html: `<p>Chào ${name},</p>
                    <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
@@ -71,22 +85,26 @@ async function checkTodaySchedule() {
       }
     }
 
-    if (!hasClassToday) {
-      console.log(`📭 Không có lớp học nào hôm nay (${weekday})`);
+    if (!found) {
+      console.log("📭 Không có lớp học nào hôm nay.");
     }
 
   } catch (err) {
-    console.error("❌ Lỗi khi truy vấn dữ liệu từ Firebase:", err.message);
+    console.error("❌ Lỗi truy vấn Firebase:", err.message);
   }
 }
 
-// === Cron job chạy 7:00 sáng mỗi ngày ===
+// ===============================
+// ⏰ Cron job (local testing)
+// ===============================
 cron.schedule('0 7 * * *', () => {
-  console.log("⏰ Đang chạy cron job lúc 7:00 sáng...");
+  console.log("⏰ Cron job kích hoạt lúc 7:00 sáng...");
   checkTodaySchedule();
 });
 
-// === Chạy ngay khi khởi động để test (chỉ cần local) ===
+// ===============================
+// 🧪 Test khi chạy thủ công
+// ===============================
 (async () => {
   await checkTodaySchedule();
 })();
