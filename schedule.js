@@ -71,7 +71,7 @@ async function checkTodaySchedule() {
 
           const msg = {
             to: email,
-            from: SENDGRID_SENDER,
+            from: 'dn2612003@gmail.com',
             subject: `📢 Nhắc lịch học hôm nay (${cls.day.toUpperCase()})`,
             html: `<p>Chào ${name},</p>
                    <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
