@@ -2,9 +2,7 @@ const admin = require('firebase-admin');
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config(); // Chỉ dùng khi chạy local
 
-// ===============================
 // 🔐 Khởi tạo Firebase Admin SDK
-// ===============================
 let serviceAccount = null;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -18,26 +16,18 @@ admin.initializeApp({
   databaseURL: 'https://rfid-8555d-default-rtdb.asia-southeast1.firebasedatabase.app',
 });
 
-// ===============================
 // 📧 Cấu hình SendGrid
-// ===============================
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const SENDGRID_SENDER = process.env.SENDGRID_SENDER;
 
 if (!SENDGRID_API_KEY || !SENDGRID_SENDER) {
-  console.error("❌ Thiếu biến SENDGRID_API_KEY hoặc SENDGRID_SENDER");
+  console.error("❌ Thiếu biến môi trường SENDGRID_API_KEY hoặc SENDGRID_SENDER");
   process.exit(1);
 }
-
-if (!SENDGRID_API_KEY) {
-  console.error("❌ Thiếu biến môi trường SENDGRID_API_KEY");
-  process.exit(1);
-}
+sgMail.setApiKey(SENDGRID_API_KEY);
 console.log(`[DEBUG] API Key có độ dài: ${SENDGRID_API_KEY.length}`);
 
-// ===============================
 // 🧠 Hàm gửi email nhắc lịch học
-// ===============================
 async function checkTodaySchedule() {
   const today = new Date();
   const weekday = today.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
@@ -71,7 +61,7 @@ async function checkTodaySchedule() {
 
           const msg = {
             to: email,
-            from: 'dn2612003@gmail.com',
+            from: SENDGRID_SENDER, // 👈 dùng đúng verified sender
             subject: `📢 Nhắc lịch học hôm nay (${cls.day.toUpperCase()})`,
             html: `<p>Chào ${name},</p>
                    <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
@@ -82,7 +72,7 @@ async function checkTodaySchedule() {
             await sgMail.send(msg);
             console.log(`✅ Đã gửi email cho ${name} (${email})`);
           } catch (err) {
-            console.error(`❌ Lỗi gửi email đến ${email}: ${err.message}`);
+            console.error(`❌ Lỗi gửi email đến ${email}: ${err.response?.body?.errors?.[0]?.message || err.message}`);
           }
         }
       }
@@ -97,13 +87,7 @@ async function checkTodaySchedule() {
   }
 }
 
-// ===============================
-// ⏰ Cron job (local testing)
-// ===============================
-
-// ===============================
 // 🧪 Test khi chạy thủ công
-// ===============================
 (async () => {
   await checkTodaySchedule();
 })();
