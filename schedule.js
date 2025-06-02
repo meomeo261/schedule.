@@ -32,7 +32,7 @@ async function checkTodaySchedule() {
   const today = new Date();
   const weekday = today.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
   console.log(`[CHECK] Kiểm tra lịch học hôm nay: ${weekday}`);
-
+  console.log(`[DEBUG] From: ${SENDGRID_SENDER}`);
   try {
     const snapshot = await admin.database().ref('class').once('value');
     const classes = snapshot.val() || {};
@@ -67,7 +67,7 @@ async function checkTodaySchedule() {
                    <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
                    <p>Vui lòng đến đúng giờ để điểm danh.</p>`,
           };
-
+          
           try {
             await sgMail.send(msg);
             console.log(`✅ Đã gửi email cho ${name} (${email})`);
