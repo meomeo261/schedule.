@@ -2,7 +2,7 @@ name: Gửi mail lịch học mỗi ngày
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Chạy lúc 7h sáng giờ Việt Nam (UTC+7 = 0h UTC)
+    - cron: '0 17 * * *' # Chạy lúc 7h sáng giờ Việt Nam (UTC+7 = 0h UTC)
   workflow_dispatch:     # Cho phép chạy thủ công trên GitHub
 
 jobs:
