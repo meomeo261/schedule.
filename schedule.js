@@ -25,15 +25,21 @@ if (!SENDGRID_API_KEY || !SENDGRID_SENDER) {
   process.exit(1);
 }
 sgMail.setApiKey(SENDGRID_API_KEY);
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 console.log(`[DEBUG] API Key có độ dài: ${SENDGRID_API_KEY.length}`);
 
 // 🧠 Hàm gửi email nhắc lịch học
 async function checkTodaySchedule() {
-  const today = new Date();
-  const weekday = today.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
-  console.log(`[CHECK] Kiểm tra lịch học hôm nay: ${weekday}`);
+  // ✅ Lấy ngày hôm sau theo giờ Việt Nam (UTC+7)
+  const nowUTC = new Date();
+  const vietnamOffsetMs = 7 * 60 * 60 * 1000;
+  const vietnamNow = new Date(nowUTC.getTime() + vietnamOffsetMs);
+  const tomorrowVN = new Date(vietnamNow);
+  tomorrowVN.setDate(vietnamNow.getDate() + 1);
+
+  const weekday = tomorrowVN.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
+  console.log(`[CHECK] Kiểm tra lịch học cho ngày mai (${weekday.toUpperCase()})`);
   console.log(`[DEBUG] From: ${SENDGRID_SENDER}`);
+
   try {
     const snapshot = await admin.database().ref('class').once('value');
     const classes = snapshot.val() || {};
@@ -45,7 +51,7 @@ async function checkTodaySchedule() {
 
       if (classDay === weekday) {
         found = true;
-        console.log(`📚 Lớp ${classId} có lịch học hôm nay`);
+        console.log(`📚 Lớp ${classId} có lịch học ngày mai`);
 
         const students = cls.studentinclass || {};
         for (const studentId in students) {
@@ -62,10 +68,10 @@ async function checkTodaySchedule() {
 
           const msg = {
             to: email,
-            from: SENDGRID_SENDER, // 👈 dùng đúng verified sender
-            subject: `📢 Nhắc lịch học hôm nay (${cls.day.toUpperCase()})`,
+            from: SENDGRID_SENDER,
+            subject: `📢 Nhắc lịch học ngày mai (${cls.day.toUpperCase()})`,
             html: `<p>Chào ${name},</p>
-                   <p>Bạn có lớp <strong>${classCode}</strong> hôm nay tại phòng <strong>${room}</strong>.</p>
+                   <p>Bạn có lớp <strong>${classCode}</strong> vào ngày mai tại phòng <strong>${room}</strong>.</p>
                    <p>Vui lòng đến đúng giờ để điểm danh.</p>`,
           };
 
@@ -80,7 +86,7 @@ async function checkTodaySchedule() {
     }
 
     if (!found) {
-      console.log("📭 Không có lớp học nào hôm nay.");
+      console.log("📭 Không có lớp học nào ngày mai.");
     }
 
   } catch (err) {
